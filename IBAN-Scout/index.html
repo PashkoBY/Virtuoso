@@ -18,11 +18,13 @@
             --accent-color: #1a73e8;
             --accent-hover: #1557b0;
             --extracted-bg: #e8f0fe;
+            --error-color: #d93025;
+            --success-color: #188038;
         }
 
         [data-theme="dark"] {
             --bg-color: #121212;
-            --container-bg: #1e1e1e;
+            --container-bg: rgba(30, 30, 30, 0.95);
             --text-color: #e0e0e0;
             --section-bg: #2d2d2d;
             --section-border: #444;
@@ -33,24 +35,92 @@
             --accent-color: #8ab4f8;
             --accent-hover: #aecbfa;
             --extracted-bg: #1a2733;
+            --error-color: #e57373;
+            --success-color: #81c995;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: 20px;
-            background: var(--bg-color);
+            background-color: var(--bg-color);
+            /* Background image setup - assumes file is named background.jpg */
+            background-image: url('background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
             color: var(--text-color);
             line-height: 1.6;
-            transition: background 0.3s, color 0.3s;
+            transition: color 0.3s;
+            min-height: 100vh;
+            display: flex;
+            align-items: center; /* Vertically center the app */
+            justify-content: center;
         }
 
         .container {
-            max-width: 650px;
+            width: 100%;
             margin: 0 auto;
             background: var(--container-bg);
+            padding: 0;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(5px);
+            display: flex;
+            overflow: hidden; /* Ensures image corners match border radius */
+            transition: all 0.3s ease;
+        }
+
+        /* --- LAYOUT MODES --- */
+
+        /* 1. Top Banner Mode (Default) */
+        .container.layout-top {
+            max-width: 650px;
+            flex-direction: column;
+        }
+
+        .container.layout-top .visual-side {
+            width: 100%;
+            height: 365px;
+        }
+
+        /* 2. Side Banner Mode */
+        .container.layout-side {
+            max-width: 900px;
+            flex-direction: row;
+        }
+
+        .container.layout-side .visual-side {
+            width: 35%;
+            height: auto;
+            min-height: 500px; /* Ensure height for side layout */
+        }
+
+        /* Common Visual Side Styles */
+        .visual-side {
+            background-color: var(--accent-color);
+            background-size: cover;
+            /* Changed from 'center' to 'center top' to prevent cutting heads/top content */
+            background-position: center top;
+            transition: background-image 0.3s ease-in-out;
+        }
+
+        /* Content Area */
+        .content-side {
+            flex: 1;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Mobile Override: Always Stack */
+        @media (max-width: 768px) {
+            .container.layout-side {
+                flex-direction: column;
+            }
+            .container.layout-side .visual-side {
+                width: 100%;
+                height: 220px;
+                min-height: auto;
+            }
         }
 
         header {
@@ -62,12 +132,17 @@
             margin-bottom: 20px;
         }
 
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+
         h2 {
             margin: 0;
             color: var(--accent-color);
         }
 
-        .theme-toggle {
+        .icon-btn {
             cursor: pointer;
             padding: 8px;
             border-radius: 50%;
@@ -77,6 +152,14 @@
             align-items: center;
             justify-content: center;
             color: var(--text-color);
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            transition: transform 0.2s;
+        }
+
+        .icon-btn:hover {
+            transform: scale(1.05);
         }
 
         .section {
@@ -115,6 +198,23 @@
             font-family: monospace;
             font-size: 1rem;
             box-sizing: border-box;
+            outline: none;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+        }
+
+        /* Validation States */
+        input.valid {
+            border-color: var(--success-color);
+            box-shadow: 0 0 0 1px var(--success-color);
+        }
+
+        input.invalid {
+            border-color: var(--error-color);
+            box-shadow: 0 0 0 1px var(--error-color);
         }
 
         .buttons {
@@ -166,76 +266,139 @@
             background-color: #28a745;
         }
 
-        .error-text {
-            color: #d93025;
+        .status-text {
             font-size: 0.85rem;
             margin-top: 5px;
+            font-weight: bold;
             display: none;
         }
+        .status-text.error { color: var(--error-color); display: block; }
+        .status-text.success { color: var(--success-color); display: block; }
+
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h2>Virtuoso Creator</h2>
-        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle Dark Mode">
-            🌙
-        </button>
-    </header>
+<!-- Apply layout class here. Default is layout-top -->
+<div class="container layout-top" id="mainContainer">
+    <!-- VISUAL SIDE -->
+    <div class="visual-side" id="visualSide" title="IBAN Scout Visual"></div>
 
-    <!-- GENERATOR SECTION -->
-    <div class="section">
-        <h3>Generate SEPA Data</h3>
-        <div class="input-group">
-            <label for="country">Select Country</label>
-            <select id="country"></select>
-        </div>
-        <div class="buttons">
-            <button onclick="generateData()">Generate New IBAN</button>
-        </div>
-        
-        <div class="output-container">
-            <div id="ibanOutput" class="output-block">IBAN: ...</div>
-            <button class="copy-btn" onclick="handleCopy('ibanOutput', this)">Copy</button>
+    <!-- CONTENT SIDE -->
+    <div class="content-side">
+        <header>
+            <h2>IBAN Scout</h2>
+            <div class="header-controls">
+                <button class="icon-btn" onclick="toggleLayout()" id="layoutBtn" title="Toggle Layout (Side/Top)">
+                    ◫
+                </button>
+                <button class="icon-btn" onclick="toggleTheme()" id="themeBtn" title="Toggle Dark Mode">
+                    🌙
+                </button>
+            </div>
+        </header>
+
+        <!-- GENERATOR SECTION -->
+        <div class="section">
+            <h3>Generate Data</h3>
+            <div class="input-group">
+                <label for="country">Select Country</label>
+                <select id="country"></select>
+            </div>
+            <div class="buttons">
+                <button onclick="generateData()">Generate New IBAN</button>
+            </div>
+
+            <div class="output-container">
+                <div id="ibanOutput" class="output-block">IBAN: ...</div>
+                <button class="copy-btn" onclick="handleCopy('ibanOutput', this)">Copy</button>
+            </div>
+
+            <div class="output-container">
+                <div id="accountOutput" class="output-block">Account Number: ...</div>
+                <button class="copy-btn" onclick="handleCopy('accountOutput', this)">Copy</button>
+            </div>
         </div>
 
-        <div class="output-container">
-            <div id="accountOutput" class="output-block">Account Number: ...</div>
-            <button class="copy-btn" onclick="handleCopy('accountOutput', this)">Copy</button>
-        </div>
-    </div>
+        <!-- EXTRACTOR SECTION -->
+        <div class="section" style="border-top: 4px solid var(--accent-color);">
+            <h3>Extract from IBAN</h3>
+            <div class="input-group">
+                <label for="ibanInput">Paste IBAN</label>
+                <input type="text" id="ibanInput" placeholder="e.g. AT58 2011 1205 5297 2839" oninput="extractFromInput()">
+                <div id="extractionStatus" class="status-text"></div>
+            </div>
 
-    <!-- EXTRACTOR SECTION -->
-    <div class="section" style="border-top: 4px solid var(--accent-color);">
-        <h3>Extract from IBAN</h3>
-        <div class="input-group">
-            <label for="ibanInput">Paste IBAN</label>
-            <input type="text" id="ibanInput" placeholder="e.g. AT00 0000 0000 0000 0000" oninput="extractFromInput()">
-            <div id="extractionError" class="error-text">Invalid IBAN format or unsupported country.</div>
-        </div>
-
-        <div class="output-container">
-            <div id="extractedAccount" class="output-block" style="background-color: var(--extracted-bg);">Account: ...</div>
-            <button class="copy-btn" onclick="handleCopy('extractedAccount', this)">Copy</button>
+            <div class="output-container">
+                <div id="extractedAccount" class="output-block" style="background-color: var(--extracted-bg);">Account: ...</div>
+                <button class="copy-btn" onclick="handleCopy('extractedAccount', this)">Copy</button>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- THEME CONTROL ---
-    function toggleTheme() {
-        const body = document.body;
-        const btn = document.getElementById('themeBtn');
-        const currentTheme = body.getAttribute('data-theme');
-        
-        if (currentTheme === 'dark') {
-            body.removeAttribute('data-theme');
-            btn.textContent = '🌙';
-        } else {
-            body.setAttribute('data-theme', 'dark');
-            btn.textContent = '☀️';
+    // --- STATE MANAGEMENT ---
+    const state = {
+        theme: 'light', // 'light' or 'dark'
+        layout: 'top'   // 'top' (horizontal banner) or 'side' (vertical side-by-side)
+    };
+
+    // --- IMAGES CONFIG ---
+    // Make sure these files exist in the same folder
+    const bannerImages = {
+        top: {
+            light: 'H_D.jpg', // Horizontal Day
+            dark: 'H_N.jpg'   // Horizontal Night
+        },
+        side: {
+            light: 'V_D.jpg', // Vertical Day
+            dark: 'V_N.jpg'   // Vertical Night
         }
+    };
+
+    // --- UI CONTROLS ---
+
+    function updateVisuals() {
+        const visualSide = document.getElementById('visualSide');
+        const layoutBtn = document.getElementById('layoutBtn');
+        const themeBtn = document.getElementById('themeBtn');
+        const body = document.body;
+        const container = document.getElementById('mainContainer');
+
+        // 1. Update Theme Attributes
+        if (state.theme === 'dark') {
+            body.setAttribute('data-theme', 'dark');
+            themeBtn.textContent = '☀️';
+        } else {
+            body.removeAttribute('data-theme');
+            themeBtn.textContent = '🌙';
+        }
+
+        // 2. Update Layout Classes
+        if (state.layout === 'side') {
+            container.classList.remove('layout-top');
+            container.classList.add('layout-side');
+            layoutBtn.textContent = '⊟'; // Icon representing top/bottom layout (to switch back)
+        } else {
+            container.classList.remove('layout-side');
+            container.classList.add('layout-top');
+            layoutBtn.textContent = '◫'; // Icon representing side layout (to switch to)
+        }
+
+        // 3. Update Image Source based on Matrix
+        const imageUrl = bannerImages[state.layout][state.theme];
+        visualSide.style.backgroundImage = `url('${imageUrl}')`;
+    }
+
+    function toggleTheme() {
+        state.theme = state.theme === 'light' ? 'dark' : 'light';
+        updateVisuals();
+    }
+
+    function toggleLayout() {
+        state.layout = state.layout === 'top' ? 'side' : 'top';
+        updateVisuals();
     }
 
     // --- DATA & SPECS ---
@@ -317,12 +480,38 @@
         return (98n - mod).toString().padStart(2, '0');
     }
 
+    // --- VALIDATION LOGIC ---
+    function validateIBAN(iban) {
+        // Basic length check (min 15 chars for NO, max 34)
+        if (iban.length < 15 || iban.length > 34) return false;
+
+        // Move first 4 chars to end
+        const rearranged = iban.substring(4) + iban.substring(0, 4);
+
+        // Convert letters to numbers (A=10, B=11, etc.)
+        let numericStr = "";
+        for (let char of rearranged) {
+            if (/[0-9]/.test(char)) {
+                numericStr += char;
+            } else {
+                numericStr += (char.charCodeAt(0) - 55).toString();
+            }
+        }
+
+        // Modulo 97 check
+        try {
+            return (BigInt(numericStr) % 97n) === 1n;
+        } catch (e) {
+            return false;
+        }
+    }
+
     // --- CORE LOGIC ---
     function generateData() {
         const cc = document.getElementById("country").value;
         const spec = bbanSpecs[cc];
         let bban = "";
-        
+
         spec.forEach((f, i) => {
             if (i === 0 && bankCodes[cc]) {
                 let bc = bankCodes[cc][Math.floor(Math.random() * bankCodes[cc].length)];
@@ -339,13 +528,14 @@
     }
 
     function extractAccountNumber(iban) {
-        const cleanIban = iban.replace(/\s/g, '').toUpperCase();
+        // Remove spaces for internal logic
+        const cleanIban = iban.replace(/[^A-Z0-9]/g, '').toUpperCase();
         if (cleanIban.length < 5) return "...";
-        
+
         const cc = cleanIban.substring(0, 2);
         const bban = cleanIban.substring(4);
         const spec = bbanSpecs[cc];
-        
+
         if (!spec) return bban;
 
         let offset = 0;
@@ -359,26 +549,45 @@
     }
 
     function extractFromInput() {
-        const input = document.getElementById("ibanInput").value.trim();
-        const errorEl = document.getElementById("extractionError");
+        const inputEl = document.getElementById("ibanInput");
+        const statusEl = document.getElementById("extractionStatus");
         const outputEl = document.getElementById("extractedAccount");
 
-        if (!input) {
+        const rawInput = inputEl.value.trim();
+
+        if (!rawInput) {
             outputEl.textContent = "Account: ...";
-            errorEl.style.display = "none";
+            statusEl.style.display = "none";
+            inputEl.classList.remove("valid", "invalid");
             return;
         }
 
-        const clean = input.replace(/\s/g, '').toUpperCase();
-        const country = clean.substring(0, 2);
+        // Clean: remove spaces and non-alphanumeric chars, convert to upper
+        const clean = rawInput.replace(/[^A-Z0-9]/g, '').toUpperCase();
 
-        if (clean.length > 4 && bbanSpecs[country]) {
+        // Validation flow
+        const isValid = validateIBAN(clean);
+        const country = clean.substring(0, 2);
+        const isSupported = bbanSpecs.hasOwnProperty(country);
+
+        if (isValid && isSupported) {
             const acc = extractAccountNumber(clean);
             outputEl.textContent = "Account: " + acc;
-            errorEl.style.display = "none";
-        } else if (clean.length >= 2) {
-            errorEl.style.display = "block";
+
+            // UI Feedback: Valid (Removed "Valid IBAN" text and green highlight)
+            statusEl.style.display = "none";
+            inputEl.classList.remove("invalid", "valid");
+        } else {
             outputEl.textContent = "Account: ...";
+
+            // UI Feedback: Error
+            if (!isSupported && clean.length >= 2) {
+                statusEl.textContent = "Unsupported country code";
+            } else {
+                statusEl.textContent = "Invalid IBAN checksum or format";
+            }
+            statusEl.className = "status-text error";
+            inputEl.className = "invalid";
         }
     }
 
@@ -394,17 +603,22 @@
         });
         select.value = "AT";
 
-        // Optional: Check system preference for dark mode
+        // Check system preference for dark mode
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            toggleTheme();
+            state.theme = 'dark';
         }
+
+        // Initial Visual Update
+        updateVisuals();
     };
 
     // --- CLIPBOARD ---
     function handleCopy(id, btn) {
         const text = document.getElementById(id).textContent;
         const value = text.split(":")[1].trim();
-        
+
+        if (value === "...") return;
+
         const textArea = document.createElement("textarea");
         textArea.value = value;
         document.body.appendChild(textArea);
