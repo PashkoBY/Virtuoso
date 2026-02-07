@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBAN Scout</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --container-bg: rgba(255, 255, 255, 0.95);
+            --text-color: #333;
+            --section-bg: #fff;
+            --section-border: #e0e0e0;
+            --input-bg: #fff;
+            --input-border: #ccc;
+            --output-bg: #f8f9fa;
+            --output-border: #ddd;
+            --accent-color: #1a73e8;
+            --accent-hover: #1557b0;
+            --extracted-bg: #e8f0fe;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --section-bg: #2d2d2d;
+            --section-border: #444;
+            --input-bg: #333;
+            --input-border: #555;
+            --output-bg: #252525;
+            --output-border: #444;
+            --accent-color: #8ab4f8;
+            --accent-hover: #aecbfa;
+            --extracted-bg: #1a2733;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin: 0;
+            color: var(--accent-color);
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            background: var(--section-bg);
+            border: 1px solid var(--section-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid var(--section-border);
+            border-radius: 8px;
+            background: var(--section-bg);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin-top: 0;
+            color: var(--text-color);
+            opacity: 0.9;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            background: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .buttons {
+            margin: 15px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: var(--accent-color);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .output-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            gap: 8px;
+        }
+
+        .output-block {
+            flex: 1;
+            padding: 12px;
+            background: var(--output-bg);
+            border: 1px solid var(--output-border);
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 15px;
+            word-wrap: break-word;
+            min-height: 1.2em;
+            color: var(--text-color);
+        }
+
+        .copy-btn {
+            padding: 10px 15px;
+            background-color: #6c757d;
+            white-space: nowrap;
+        }
+
+        .copy-btn.copied {
+            background-color: #28a745;
+        }
+
+        .error-text {
+            color: #d93025;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h2>Virtuoso Creator</h2>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle Dark Mode">
+            🌙
+        </button>
+    </header>
+
+    <!-- GENERATOR SECTION -->
+    <div class="section">
+        <h3>Generate SEPA Data</h3>
+        <div class="input-group">
+            <label for="country">Select Country</label>
+            <select id="country"></select>
+        </div>
+        <div class="buttons">
+            <button onclick="generateData()">Generate New IBAN</button>
+        </div>
+        
+        <div class="output-container">
+            <div id="ibanOutput" class="output-block">IBAN: ...</div>
+            <button class="copy-btn" onclick="handleCopy('ibanOutput', this)">Copy</button>
+        </div>
+
+        <div class="output-container">
+            <div id="accountOutput" class="output-block">Account Number: ...</div>
+            <button class="copy-btn" onclick="handleCopy('accountOutput', this)">Copy</button>
+        </div>
+    </div>
+
+    <!-- EXTRACTOR SECTION -->
+    <div class="section" style="border-top: 4px solid var(--accent-color);">
+        <h3>Extract from IBAN</h3>
+        <div class="input-group">
+            <label for="ibanInput">Paste IBAN</label>
+            <input type="text" id="ibanInput" placeholder="e.g. AT00 0000 0000 0000 0000" oninput="extractFromInput()">
+            <div id="extractionError" class="error-text">Invalid IBAN format or unsupported country.</div>
+        </div>
+
+        <div class="output-container">
+            <div id="extractedAccount" class="output-block" style="background-color: var(--extracted-bg);">Account: ...</div>
+            <button class="copy-btn" onclick="handleCopy('extractedAccount', this)">Copy</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- THEME CONTROL ---
+    function toggleTheme() {
+        const body = document.body;
+        const btn = document.getElementById('themeBtn');
+        const currentTheme = body.getAttribute('data-theme');
+        
+        if (currentTheme === 'dark') {
+            body.removeAttribute('data-theme');
+            btn.textContent = '🌙';
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            btn.textContent = '☀️';
+        }
+    }
+
+    // --- DATA & SPECS ---
+    const bankCodes = {
+        AT: ["20111", "12000", "19043"], DE: ["37040044", "50010517", "10020030"],
+        FR: ["30004", "20041", "10278"], ES: ["2100", "0049", "2038"],
+        IT: ["03069", "05034", "02008"], BE: ["539", "001", "063"],
+        BG: ["BNBG", "STS", "UNIC"], HR: ["2400009", "2340009", "1900007"],
+        CY: ["012", "010", "011"], CZ: ["0800", "0300", "0700"],
+        DK: ["DABADKKK", "DAB", "HAND"], EE: ["HABA", "SWED", "HCVB"],
+        FI: ["123456", "10010", "10020"], GR: ["014", "012", "011"],
+        HU: ["117", "104", "103"], IS: ["0159", "0165", "0145"],
+        IE: ["AIBK", "BOFI", "ULSB"], LV: ["HABA", "RIMB", "PBSK"],
+        LI: ["002", "010", "020"], LT: ["70440", "73000", "73001"],
+        LU: ["001", "002", "003"], MT: ["MALT", "MPLA", "BANK"],
+        MC: ["30004", "20041", "10278"], NL: ["INGB", "RABO", "ABNA"],
+        NO: ["8601", "8602", "8603"], PL: ["1090", "1140", "1130"],
+        PT: ["0035", "0010", "0043"], RO: ["BRDE", "BACX", "RZBR"],
+        SM: ["05428", "00001", "00002"], SK: ["1100", "0200", "0900"],
+        SI: ["01100", "03000", "04000"], SE: ["500", "700", "900"],
+        CH: ["007", "075", "090"], GB: ["BARC", "NWBK", "LOYD"],
+        AD: ["0001", "0002", "0003"], AL: ["2121", "2122", "2123"],
+        ME: ["5050", "5100", "5200"], RS: ["250", "260", "270"],
+        MK: ["144", "130", "150"], GE: ["BA", "TB", "BO"]
+    };
+
+    const bbanSpecs = {
+        AT: [{n:'bank',l:5}, {n:'account',l:11}],
+        DE: [{n:'bank',l:8}, {n:'account',l:10}],
+        FR: [{n:'bank',l:5}, {n:'branch',l:5}, {n:'account',l:11}, {n:'check',l:2}],
+        ES: [{n:'bank',l:4}, {n:'branch',l:4}, {n:'check',l:2}, {n:'account',l:10}],
+        IT: [{n:'check',l:1}, {n:'bank',l:5}, {n:'branch',l:5}, {n:'account',l:12}],
+        BE: [{n:'bank',l:3}, {n:'account',l:7}, {n:'check',l:2}],
+        BG: [{n:'bank',l:4}, {n:'branch',l:4}, {n:'account',l:8}],
+        HR: [{n:'bank',l:7}, {n:'account',l:10}],
+        CY: [{n:'bank',l:3}, {n:'branch',l:5}, {n:'account',l:16}],
+        CZ: [{n:'bank',l:4}, {n:'account',l:16}],
+        DK: [{n:'bban',l:14}],
+        EE: [{n:'bank',l:4}, {n:'account',l:12}],
+        FI: [{n:'bank',l:6}, {n:'account',l:8}],
+        GR: [{n:'bank',l:3}, {n:'branch',l:4}, {n:'account',l:16}],
+        HU: [{n:'bank',l:3}, {n:'account',l:24}],
+        IS: [{n:'bank',l:4}, {n:'account',l:16}],
+        IE: [{n:'bank',l:4}, {n:'branch',l:6}, {n:'account',l:8}],
+        LV: [{n:'bank',l:4}, {n:'account',l:13}],
+        LI: [{n:'bank',l:5}, {n:'account',l:12}],
+        LT: [{n:'bank',l:5}, {n:'account',l:11}],
+        LU: [{n:'bank',l:3}, {n:'account',l:13}],
+        MT: [{n:'bank',l:4}, {n:'branch',l:5}, {n:'account',l:18}],
+        MC: [{n:'bank',l:5}, {n:'branch',l:5}, {n:'account',l:11}, {n:'check',l:2}],
+        NL: [{n:'bank',l:4}, {n:'account',l:10}],
+        NO: [{n:'bank',l:4}, {n:'account',l:6}],
+        PL: [{n:'bank',l:8}, {n:'account',l:16}],
+        PT: [{n:'bank',l:4}, {n:'branch',l:4}, {n:'account',l:11}],
+        RO: [{n:'bank',l:4}, {n:'account',l:16}],
+        SM: [{n:'bank',l:5}, {n:'branch',l:5}, {n:'account',l:12}],
+        SK: [{n:'bank',l:4}, {n:'account',l:10}],
+        SI: [{n:'bank',l:5}, {n:'account',l:8}],
+        SE: [{n:'bank',l:3}, {n:'account',l:17}],
+        CH: [{n:'bank',l:5}, {n:'account',l:12}],
+        GB: [{n:'bank',l:4}, {n:'branch',l:6}, {n:'account',l:8}],
+        AD: [{n:'bank',l:4}, {n:'account',l:20}],
+        AL: [{n:'bank',l:8}, {n:'account',l:16}],
+        ME: [{n:'bank',l:3}, {n:'account',l:13}],
+        RS: [{n:'bank',l:3}, {n:'account',l:13}],
+        MK: [{n:'bank',l:3}, {n:'account',l:11}],
+        GE: [{n:'bank',l:2}, {n:'account',l:16}]
+    };
+
+    // --- UTILITIES ---
+    function randD(n) { let s = ""; for (let i = 0; i < n; i++) s += Math.floor(Math.random() * 10); return s; }
+    function randAN(n) { const c = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; let s = ""; for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)]; return s; }
+
+    function getIbanCheck(cc, bban) {
+        let r = bban + cc + "00";
+        let n = "";
+        for (let ch of r) n += /[A-Z]/.test(ch) ? (ch.charCodeAt(0) - 55).toString() : ch;
+        let mod = BigInt(n) % 97n;
+        return (98n - mod).toString().padStart(2, '0');
+    }
+
+    // --- CORE LOGIC ---
+    function generateData() {
+        const cc = document.getElementById("country").value;
+        const spec = bbanSpecs[cc];
+        let bban = "";
+        
+        spec.forEach((f, i) => {
+            if (i === 0 && bankCodes[cc]) {
+                let bc = bankCodes[cc][Math.floor(Math.random() * bankCodes[cc].length)];
+                bban += bc.toString().padEnd(f.l, '0').slice(0, f.l);
+            } else {
+                if (cc === 'GB' || cc === 'NL' || cc === 'RO') bban += randAN(f.l);
+                else bban += randD(f.l);
+            }
+        });
+
+        const iban = cc + getIbanCheck(cc, bban) + bban;
+        document.getElementById("ibanOutput").textContent = "IBAN: " + iban;
+        document.getElementById("accountOutput").textContent = "Account Number: " + extractAccountNumber(iban);
+    }
+
+    function extractAccountNumber(iban) {
+        const cleanIban = iban.replace(/\s/g, '').toUpperCase();
+        if (cleanIban.length < 5) return "...";
+        
+        const cc = cleanIban.substring(0, 2);
+        const bban = cleanIban.substring(4);
+        const spec = bbanSpecs[cc];
+        
+        if (!spec) return bban;
+
+        let offset = 0;
+        for(let field of spec) {
+            if (field.n === 'account') {
+                return bban.substring(offset, offset + field.l);
+            }
+            offset += field.l;
+        }
+        return bban;
+    }
+
+    function extractFromInput() {
+        const input = document.getElementById("ibanInput").value.trim();
+        const errorEl = document.getElementById("extractionError");
+        const outputEl = document.getElementById("extractedAccount");
+
+        if (!input) {
+            outputEl.textContent = "Account: ...";
+            errorEl.style.display = "none";
+            return;
+        }
+
+        const clean = input.replace(/\s/g, '').toUpperCase();
+        const country = clean.substring(0, 2);
+
+        if (clean.length > 4 && bbanSpecs[country]) {
+            const acc = extractAccountNumber(clean);
+            outputEl.textContent = "Account: " + acc;
+            errorEl.style.display = "none";
+        } else if (clean.length >= 2) {
+            errorEl.style.display = "block";
+            outputEl.textContent = "Account: ...";
+        }
+    }
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        const select = document.getElementById("country");
+        const codes = Object.keys(bbanSpecs).sort();
+        codes.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c;
+            opt.textContent = c + (c === 'MK' || c === 'GE' ? ' (non-SEPA)' : '');
+            select.appendChild(opt);
+        });
+        select.value = "AT";
+
+        // Optional: Check system preference for dark mode
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            toggleTheme();
+        }
+    };
+
+    // --- CLIPBOARD ---
+    function handleCopy(id, btn) {
+        const text = document.getElementById(id).textContent;
+        const value = text.split(":")[1].trim();
+        
+        const textArea = document.createElement("textarea");
+        textArea.value = value;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            const oldText = btn.textContent;
+            btn.textContent = "Copied!";
+            btn.classList.add("copied");
+            setTimeout(() => {
+                btn.textContent = oldText;
+                btn.classList.remove("copied");
+            }, 1500);
+        } catch (err) {
+            console.error('Copy failed', err);
+        }
+        document.body.removeChild(textArea);
+    }
+</script>
+
+</body>
+</html>
