@@ -51,7 +51,7 @@
         [data-theme="dark"] .container {
     border: 1px solid var(--app-border);
     animation: neon-pulse 5s infinite ease-in-out;
-    overflow: visible; /* Чтобы свечение не обрезалось */
+    overflow: visible;
 }
 
         body {
@@ -70,6 +70,8 @@
             display: flex;
             align-items: flex-start;
             justify-content: center;
+            zoom: 0.9;
+            transform-origin: top center;
         }
 
         .container {
