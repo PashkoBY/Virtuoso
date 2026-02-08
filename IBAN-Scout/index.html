@@ -666,55 +666,34 @@
     };
 
   // --- CLIPBOARD ---
-    /**
-     * Modern handleCopy using the navigator.clipboard API
+/**
+     * Modern handleCopy using only the navigator.clipboard API.
+     * Note: This requires a secure context (HTTPS) or localhost to work.
      * @param {string} id - The ID of the element containing text
      * @param {HTMLElement} btn - The button element that was clicked
      */
-    function handleCopy(id, btn) {
-        const text = document.getElementById(id).textContent;
+    async function handleCopy(id, btn) {
+        const element = document.getElementById(id);
+        if (!element) return;
+
+        const text = element.textContent;
         const parts = text.split(":");
         if (parts.length < 2) return;
-        const value = parts[1].trim();
 
+        const value = parts[1].trim();
         if (value === "..." || !value) return;
 
-        // Modern Clipboard API approach
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(value).then(() => {
-                // Success feedback
-                btn.classList.add("copied");
-                setTimeout(() => {
-                    btn.classList.remove("copied");
-                }, 1500);
-            }).catch(err => {
-                console.error('Clipboard copy failed:', err);
-                // Simple fallback if API fails in specific environments
-                fallbackCopy(value, btn);
-            });
-        } else {
-            fallbackCopy(value, btn);
-        }
-    }
-
-    /**
-     * Legacy fallback for older browsers or restricted environments
-     */
-    function fallbackCopy(text, btn) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
         try {
-            document.execCommand('copy');
+            await navigator.clipboard.writeText(value);
+            // Success feedback
             btn.classList.add("copied");
-            setTimeout(() => btn.classList.remove("copied"), 1500);
+            setTimeout(() => {
+                btn.classList.remove("copied");
+            }, 1500);
         } catch (err) {
-            console.error('Fallback copy failed:', err);
+            console.error('Copy failed. Ensure you are using HTTPS:', err);
         }
-        document.body.removeChild(textArea);
     }
 </script>
-
 </body>
 </html>
