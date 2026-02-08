@@ -6,44 +6,58 @@
     <title>IBAN Scout</title>
     <style>
         :root {
-            --bg-color: #f0f2f5;
-            --container-bg: rgba(255, 255, 255, 0.95);
-            --text-color: #333;
+            /* SUNNY DAY MODE */
+            --bg-color: #e3f2fd;
+            --container-bg: rgba(255, 253, 248, 0.95);
+            --text-color: #2c3e50;
             --section-bg: #fff;
-            --section-border: #e0e0e0;
+            --section-border: #bbdefb;
             --input-bg: #fff;
-            --input-border: #ccc;
-            --output-bg: #f8f9fa;
-            --output-border: #ddd;
-            --accent-color: #1a73e8;
-            --accent-hover: #1557b0;
-            --extracted-bg: #e8f0fe;
-            --error-color: #d93025;
-            --success-color: #188038;
+            --input-border: #90caf9;
+            --output-bg: #fffde7;
+            --output-border: #fff59d;
+            --accent-color: #1976d2;
+            --accent-hover: #1565c0;
+            --extracted-bg: #fffde7;
+            --error-color: #d32f2f;
+            --success-color: #388e3c;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+
+        --app-glow: 0 10px 30px rgba(0,0,0,0.1);
+        --app-border: transparent;
         }
 
+        /* NEON DARK MODE */
         [data-theme="dark"] {
-            --bg-color: #121212;
-            --container-bg: rgba(30, 30, 30, 0.95);
+            --bg-color: #050505;
+            --container-bg: #111111;
             --text-color: #e0e0e0;
-            --section-bg: #2d2d2d;
-            --section-border: #444;
-            --input-bg: #333;
-            --input-border: #555;
-            --output-bg: #252525;
-            --output-border: #444;
-            --accent-color: #8ab4f8;
-            --accent-hover: #aecbfa;
-            --extracted-bg: #1a2733;
-            --error-color: #e57373;
-            --success-color: #81c995;
+            --section-bg: #1a1a1a;
+            --section-border: #333;
+            --input-bg: #1a0b2e;
+            --input-border: #444;
+            --output-bg: #1a0b2e;
+            --output-border: #bf29ff;
+            --accent-color: #bf29ff;
+            --accent-hover: #d15cff;
+            --extracted-bg: #1a0b2e;
+            --error-color: #ff0055;
+            --success-color: #39ff14;
+
+        --app-glow: 0 0 20px rgba(191, 41, 255, 0.4), inset 0 0 10px rgba(191, 41, 255, 0.2);
+        --app-border: transparent;
         }
+
+        [data-theme="dark"] .container {
+    border: 1px solid var(--app-border);
+    animation: neon-pulse 5s infinite ease-in-out;
+    overflow: visible; /* Чтобы свечение не обрезалось */
+}
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: 20px;
             background-color: var(--bg-color);
-            /* Background image setup - assumes file is named background.jpg */
             background-image: url('background.jpg');
             background-size: cover;
             background-position: center;
@@ -54,37 +68,51 @@
             transition: color 0.3s;
             min-height: 100vh;
             display: flex;
-            align-items: center; /* Vertically center the app */
+            align-items: flex-start;
             justify-content: center;
         }
 
         .container {
             width: 100%;
-            margin: 0 auto;
+            margin: 20px auto;
             background: var(--container-bg);
             padding: 0;
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 1px solid var(--app-border);
+            box-shadow: var(--app-glow);
             backdrop-filter: blur(5px);
             display: flex;
-            overflow: hidden; /* Ensures image corners match border radius */
+            overflow: visible;
             transition: all 0.3s ease;
         }
 
         /* --- LAYOUT MODES --- */
-
-        /* 1. Top Banner Mode (Default) */
         .container.layout-top {
-            max-width: 650px;
+            max-width: 1000px;
             flex-direction: column;
         }
 
         .container.layout-top .visual-side {
             width: 100%;
             height: 365px;
+            border-radius: 16px 16px 0 0;
         }
 
-        /* 2. Side Banner Mode */
+        .container.layout-top .content-side {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-content: start;
+        }
+
+        .container.layout-top header {
+            grid-column: 1 / -1;
+        }
+
+        .container.layout-top .section {
+            margin-bottom: 0;
+        }
+
         .container.layout-side {
             max-width: 900px;
             flex-direction: row;
@@ -93,33 +121,44 @@
         .container.layout-side .visual-side {
             width: 35%;
             height: auto;
-            min-height: 500px; /* Ensure height for side layout */
+            min-height: 500px;
+            border-radius: 16px 0 0 16px;
         }
 
-        /* Common Visual Side Styles */
+        .container.layout-side .content-side {
+            display: block;
+        }
+
         .visual-side {
             background-color: var(--accent-color);
             background-size: cover;
-            /* Changed from 'center' to 'center top' to prevent cutting heads/top content */
             background-position: center top;
             transition: background-image 0.3s ease-in-out;
         }
 
-        /* Content Area */
         .content-side {
             flex: 1;
             padding: 30px;
         }
 
-        /* Mobile Override: Always Stack */
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
+            .container.layout-top,
             .container.layout-side {
                 flex-direction: column;
             }
-            .container.layout-side .visual-side {
+
+            .container.layout-side .visual-side,
+            .container.layout-top .visual-side {
                 width: 100%;
                 height: 220px;
                 min-height: auto;
+            }
+
+            .container.layout-top .content-side {
+                display: block;
+            }
+            .container.layout-top .section {
+                margin-bottom: 25px;
             }
         }
 
@@ -181,6 +220,25 @@
             margin-bottom: 15px;
         }
 
+        /* Combined row for dropdown and button */
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-row .select-wrapper {
+            flex: 1;
+        }
+
+        /* Ensure both select and button have the exact same height */
+        .input-row select,
+        .input-row button {
+            height: 42px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
         label {
             display: block;
             font-weight: bold;
@@ -196,7 +254,6 @@
             border: 1px solid var(--input-border);
             border-radius: 4px;
             font-family: monospace;
-            font-size: 1rem;
             box-sizing: border-box;
             outline: none;
         }
@@ -206,7 +263,6 @@
             box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
         }
 
-        /* Validation States */
         input.valid {
             border-color: var(--success-color);
             box-shadow: 0 0 0 1px var(--success-color);
@@ -217,19 +273,18 @@
             box-shadow: 0 0 0 1px var(--error-color);
         }
 
-        .buttons {
-            margin: 15px 0;
-        }
-
         button {
-            padding: 10px 20px;
-            font-size: 14px;
+            padding: 0 20px; /* Use vertical alignment from height */
             cursor: pointer;
             background-color: var(--accent-color);
             color: #fff;
             border: none;
             border-radius: 4px;
             transition: background 0.2s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         button:hover {
@@ -238,7 +293,7 @@
 
         .output-container {
             display: flex;
-            align-items: center;
+            align-items: stretch;
             margin-top: 10px;
             gap: 8px;
         }
@@ -254,12 +309,17 @@
             word-wrap: break-word;
             min-height: 1.2em;
             color: var(--text-color);
+            display: flex;
+            align-items: center;
         }
 
         .copy-btn {
-            padding: 10px 15px;
+            height: auto; /* Reset for output containers */
+            padding: 0 20px;
             background-color: #6c757d;
             white-space: nowrap;
+            display: flex;
+            align-items: center;
         }
 
         .copy-btn.copied {
@@ -275,11 +335,24 @@
         .status-text.error { color: var(--error-color); display: block; }
         .status-text.success { color: var(--success-color); display: block; }
 
+        @keyframes neon-pulse {
+    0% {
+        box-shadow: 0 0 15px rgba(191, 41, 255, 0.3), inset 0 0 5px rgba(191, 41, 255, 0.2);
+        border-color: rgba(191, 41, 255, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 35px rgba(191, 41, 255, 0.6), inset 0 0 15px rgba(191, 41, 255, 0.4);
+        border-color: rgba(209, 92, 255, 1); /* Используем ваш --accent-hover */
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(191, 41, 255, 0.3), inset 0 0 5px rgba(191, 41, 255, 0.2);
+        border-color: rgba(191, 41, 255, 0.6);
+    }
+}
     </style>
 </head>
 <body>
 
-<!-- Apply layout class here. Default is layout-top -->
 <div class="container layout-top" id="mainContainer">
     <!-- VISUAL SIDE -->
     <div class="visual-side" id="visualSide" title="IBAN Scout Visual"></div>
@@ -302,11 +375,13 @@
         <div class="section">
             <h3>Generate Data</h3>
             <div class="input-group">
-                <label for="country">Select Country</label>
-                <select id="country"></select>
-            </div>
-            <div class="buttons">
-                <button onclick="generateData()">Generate New IBAN</button>
+                <div class="input-row">
+                    <div class="select-wrapper">
+                        <label for="country">Select Country</label>
+                        <select id="country"></select>
+                    </div>
+                    <button onclick="generateData()">Generate</button>
+                </div>
             </div>
 
             <div class="output-container">
@@ -321,7 +396,7 @@
         </div>
 
         <!-- EXTRACTOR SECTION -->
-        <div class="section" style="border-top: 4px solid var(--accent-color);">
+        <div class="section">
             <h3>Extract from IBAN</h3>
             <div class="input-group">
                 <label for="ibanInput">Paste IBAN</label>
@@ -340,25 +415,23 @@
 <script>
     // --- STATE MANAGEMENT ---
     const state = {
-        theme: 'light', // 'light' or 'dark'
-        layout: 'top'   // 'top' (horizontal banner) or 'side' (vertical side-by-side)
+        theme: 'light',
+        layout: 'top'
     };
 
     // --- IMAGES CONFIG ---
-    // Make sure these files exist in the same folder
     const bannerImages = {
         top: {
-            light: 'H_D.jpg', // Horizontal Day
-            dark: 'H_N.jpg'   // Horizontal Night
+            light: 'H_D.jpg',
+            dark: 'H_N.jpg'
         },
         side: {
-            light: 'V_D.jpg', // Vertical Day
-            dark: 'V_N.jpg'   // Vertical Night
+            light: 'V_D.jpg',
+            dark: 'V_N.jpg'
         }
     };
 
     // --- UI CONTROLS ---
-
     function updateVisuals() {
         const visualSide = document.getElementById('visualSide');
         const layoutBtn = document.getElementById('layoutBtn');
@@ -366,7 +439,6 @@
         const body = document.body;
         const container = document.getElementById('mainContainer');
 
-        // 1. Update Theme Attributes
         if (state.theme === 'dark') {
             body.setAttribute('data-theme', 'dark');
             themeBtn.textContent = '☀️';
@@ -375,18 +447,16 @@
             themeBtn.textContent = '🌙';
         }
 
-        // 2. Update Layout Classes
         if (state.layout === 'side') {
             container.classList.remove('layout-top');
             container.classList.add('layout-side');
-            layoutBtn.textContent = '⊟'; // Icon representing top/bottom layout (to switch back)
+            layoutBtn.textContent = '⊟';
         } else {
             container.classList.remove('layout-side');
             container.classList.add('layout-top');
-            layoutBtn.textContent = '◫'; // Icon representing side layout (to switch to)
+            layoutBtn.textContent = '◫';
         }
 
-        // 3. Update Image Source based on Matrix
         const imageUrl = bannerImages[state.layout][state.theme];
         visualSide.style.backgroundImage = `url('${imageUrl}')`;
     }
@@ -482,13 +552,8 @@
 
     // --- VALIDATION LOGIC ---
     function validateIBAN(iban) {
-        // Basic length check (min 15 chars for NO, max 34)
         if (iban.length < 15 || iban.length > 34) return false;
-
-        // Move first 4 chars to end
         const rearranged = iban.substring(4) + iban.substring(0, 4);
-
-        // Convert letters to numbers (A=10, B=11, etc.)
         let numericStr = "";
         for (let char of rearranged) {
             if (/[0-9]/.test(char)) {
@@ -497,8 +562,6 @@
                 numericStr += (char.charCodeAt(0) - 55).toString();
             }
         }
-
-        // Modulo 97 check
         try {
             return (BigInt(numericStr) % 97n) === 1n;
         } catch (e) {
@@ -528,7 +591,6 @@
     }
 
     function extractAccountNumber(iban) {
-        // Remove spaces for internal logic
         const cleanIban = iban.replace(/[^A-Z0-9]/g, '').toUpperCase();
         if (cleanIban.length < 5) return "...";
 
@@ -562,10 +624,7 @@
             return;
         }
 
-        // Clean: remove spaces and non-alphanumeric chars, convert to upper
         const clean = rawInput.replace(/[^A-Z0-9]/g, '').toUpperCase();
-
-        // Validation flow
         const isValid = validateIBAN(clean);
         const country = clean.substring(0, 2);
         const isSupported = bbanSpecs.hasOwnProperty(country);
@@ -573,14 +632,10 @@
         if (isValid && isSupported) {
             const acc = extractAccountNumber(clean);
             outputEl.textContent = "Account: " + acc;
-
-            // UI Feedback: Valid (Removed "Valid IBAN" text and green highlight)
             statusEl.style.display = "none";
             inputEl.classList.remove("invalid", "valid");
         } else {
             outputEl.textContent = "Account: ...";
-
-            // UI Feedback: Error
             if (!isSupported && clean.length >= 2) {
                 statusEl.textContent = "Unsupported country code";
             } else {
@@ -603,37 +658,59 @@
         });
         select.value = "AT";
 
-        // Check system preference for dark mode
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             state.theme = 'dark';
         }
 
-        // Initial Visual Update
         updateVisuals();
     };
 
-    // --- CLIPBOARD ---
+  // --- CLIPBOARD ---
+    /**
+     * Modern handleCopy using the navigator.clipboard API
+     * @param {string} id - The ID of the element containing text
+     * @param {HTMLElement} btn - The button element that was clicked
+     */
     function handleCopy(id, btn) {
         const text = document.getElementById(id).textContent;
-        const value = text.split(":")[1].trim();
+        const parts = text.split(":");
+        if (parts.length < 2) return;
+        const value = parts[1].trim();
 
-        if (value === "...") return;
+        if (value === "..." || !value) return;
 
+        // Modern Clipboard API approach
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value).then(() => {
+                // Success feedback
+                btn.classList.add("copied");
+                setTimeout(() => {
+                    btn.classList.remove("copied");
+                }, 1500);
+            }).catch(err => {
+                console.error('Clipboard copy failed:', err);
+                // Simple fallback if API fails in specific environments
+                fallbackCopy(value, btn);
+            });
+        } else {
+            fallbackCopy(value, btn);
+        }
+    }
+
+    /**
+     * Legacy fallback for older browsers or restricted environments
+     */
+    function fallbackCopy(text, btn) {
         const textArea = document.createElement("textarea");
-        textArea.value = value;
+        textArea.value = text;
         document.body.appendChild(textArea);
         textArea.select();
         try {
             document.execCommand('copy');
-            const oldText = btn.textContent;
-            btn.textContent = "Copied!";
             btn.classList.add("copied");
-            setTimeout(() => {
-                btn.textContent = oldText;
-                btn.classList.remove("copied");
-            }, 1500);
+            setTimeout(() => btn.classList.remove("copied"), 1500);
         } catch (err) {
-            console.error('Copy failed', err);
+            console.error('Fallback copy failed:', err);
         }
         document.body.removeChild(textArea);
     }
