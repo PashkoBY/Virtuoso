@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Striaris Tabulata - Fixed</title>
+    <!-- Dependencies: React, ReactDOM, Babel (for JSX), Tailwind CSS -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f8fafc;
+        }
+
+        .monospace-editor {
+            font-family: 'Roboto Mono', monospace !important;
+            font-variant-ligatures: none;
+            font-feature-settings: "tnum";
+            letter-spacing: 0px;
+            word-spacing: 0px;
+            text-rendering: optimizeSpeed;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .drag-active {
+            outline: 4px dashed #6366f1;
+            outline-offset: -8px;
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+    const { useState, useMemo, useRef, useEffect } = React;
+
+    // --- ICON COMPONENTS ---
+    const Icon = ({ children, size = 16, className = "" }) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+    );
+    const Hash = (p) => <Icon {...p}><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></Icon>;
+    const Upload = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Icon>;
+    const Download = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Icon>;
+    const Settings = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1V11a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0 .33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
+    const Layers = (p) => <Icon {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></Icon>;
+    const Eye = (p) => <Icon {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Icon>;
+    const EyeOff = (p) => <Icon {...p}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></Icon>;
+    const AlertCircle = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Icon>;
+    const RefreshCw = (p) => <Icon {...p}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></Icon>;
+    const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
+    const MousePointer2 = (p) => <Icon {...p}><path d="M7 15l5 5 8-16-16 8 5 3z"/></Icon>;
+
+   // --- CONFIGURATION ENGINE ---
+    const TEMPLATE_CONFIG = {
+"F001": {
+    name: "F001 - SAP",
+    description: "Internal inbound file which is generated for SAP - F001 contains aggregated report about transactions",
+    expectedWidth: 797,
+    sections: [
+        {
+            id: "fheader",
+            name: "File header",
+            color: "rgba(217, 119, 6, 0.18)",
+            borderColor: "rgba(146, 64, 14, 0.9)",
+            match: "first",
+            fields: [
+                { name: "Record number", start: 1, end: 6 },
+                { name: "Record subnumber", end: 12 },
+                { name: "Source System ID", end: 16 },
+                { name: "Target System ID", end: 20 },
+                { name: "Environment code", end: 21 },
+                { name: "Creation date", end: 29 },
+                { name: "Creation time", end: 37 },
+                { name: "Trailer", end: 797 }
+            ]
+        },
+        {
+            id: "ftrailer",
+            name: "File trailer",
+            color: "rgba(217, 119, 6, 0.18)",
+            borderColor: "rgba(146, 64, 14, 0.9)",
+            match: "last",
+            fields:[
+                { name: "Record number", start: 1, end: 6 },
+                { name: "Record subnumber", end: 12 },
+                { name: "Number of records", end: 26 },
+                { name: "Total amount of Debit records", end: 42 },
+                { name: "Total amount of Credit records", end: 58 },
+                { name: "Trailer", end: 797 }
+            ]
+        },
+        {
+            id: "dheader",
+            name: "Document header",
+            color: "rgba(2, 132, 199, 0.18)",
+            borderColor: "rgba(7, 89, 133, 0.9)",
+            match: (line) => {
+             const docType = line.substring(17, 19);
+             const allowedTypes = ['D1', 'EZ', '2L', '2S', '4L']; return allowedTypes.includes(docType); },
+            fields: [
+                { name: "Record number", start: 1, end: 6 },
+                { name: "Record subnumber", end: 12 },
+                { name: "Environment code", end: 14 },
+                { name: "Company code", end: 17 },
+                { name: "Document type", end: 19 },
+                { name: "Booking date", end: 27 },
+                { name: "Currency", end: 30 },
+                { name: "Document date", end: 38 },
+                { name: "Reference", end: 48 },
+                { name: "Document header text", end: 73 },
+                { name: "FX rate", end: 87 },
+                { name: "Domestic currency", end: 90 },
+                { name: "Trailer", end: 797 }
+            ]
+        } ,
+        {
+            id: "brecord",
+            name: "Booking record",
+            color: "rgba(241, 245, 249, 1.0)",
+            borderColor: "rgba(148, 163, 184, 0.6)",
+            match: "default",
+            fields: [
+                { name: "Record number", start: 1, end: 6 },
+                { name: "Record subnumber", end: 12 },
+                { name: "SAP account number", end: 22 },
+                { name: "Account type", end: 24 },
+                { name: "Booking key", end: 26 },
+                { name: "Booking amount in original currency", end: 42 },
+                { name: "Credit Debit Indicator", end: 43 },
+                { name: "Booking amount in EUR", end: 59 },
+                { name: "VAT number", end: 62 },
+                { name: "VAT amount in original currency", end: 78 },
+                { name: "VAT amount in EUR", end: 94 },
+                { name: "Asset subnumber or business area", end: 97 },
+                { name: "Asset movement type", end: 100 },
+                { name: "Business area", end: 102 },
+                { name: "Cost center", end: 110 },
+                { name: "Assignment", end: 120 },
+                { name: "Value date", end: 128 },
+                { name: "Reference date", end: 136 },
+                { name: "CPD Country code", end: 138 },
+                { name: "CPD Name 1", end: 168 },
+                { name: "CPD ZIP code", end: 178 },
+                { name: "CPD City", end: 203 },
+                { name: "CPD Street", end: 228 },
+                { name: "CPD Bank account number", end: 239 },
+                { name: "CPD Bank routing number", end: 247 },
+                { name: "CPD Bank country code", end: 249 },
+                { name: "CPD Bank name", end: 284 },
+                { name: "Segment Purpose", end: 334 },
+                { name: "IBAN Intern", end: 368 },
+                { name: "BIC Intern", end: 379 },
+                { name: "IBAN Extern", end: 413 },
+                { name: "BIC Extern", end: 424 },
+                { name: "End To End Reference", end: 459 },
+                { name: "Transaction Reference", end: 494 },
+                { name: "Return code", end: 498 },
+                { name: "Return code description", end: 528 },
+                { name: "Mandate reference", end: 563 },
+                { name: "Mandate date of signature", end: 571 },
+                { name: "SDD Sequence type", end: 575 },
+                { name: "Creditor Id", end: 610 },
+                { name: "Debtor Id", end: 645 },
+                { name: "SDD Type", end: 649 },
+                { name: "Remittance information", end: 789 },
+                { name: "SEPA business transaction code group", end: 793 },
+                { name: "SEPA business transaction code", end: 797 }
+            ]
+        }
+    ]
+},
+    "massive_data_demo": {
+        name: "Massive Data (Compact Config)",
+        description: "Demonstrating rawOffsets for simplified maintenance.",
+        expectedWidth: 300,
+        sections: [
+            {
+                id: "data_block",
+                name: "Compact Layout",
+                color: "rgba(16, 185, 129, 0.08)",
+                borderColor: "rgba(5, 150, 105, 0.5)",
+                match: "default",
+                rawOffsets: "3 14 16 46 71 79 104 106 117 125 127 131 139 142 150 151 152 153 187 198 233 234 235 269 280 283 300"
+            }
+        ]
+    }
+};
+
+
+    const App = () => {
+        const [text, setText] = useState("");
+        const [activeTemplateKey, setActiveTemplateKey] = useState(Object.keys(TEMPLATE_CONFIG)[0]);
+        const [visibleLayers, setVisibleLayers] = useState(new Set(["fheader", "ftrailer", "dheader", "brecord", "data_block"]));
+        const [showRuler, setShowRuler] = useState(true);
+        const [showSpaces, setShowSpaces] = useState(false);
+        const [charWidth, setCharWidth] = useState(9.006);
+        const [cursorPos, setCursorPos] = useState({ line: 0, col: 0 });
+        const [isDragging, setIsDragging] = useState(false);
+
+        const editorRef = useRef(null);
+        const scrollContainerRef = useRef(null);
+        const measurerRef = useRef(null);
+
+        const currentTemplate = TEMPLATE_CONFIG[activeTemplateKey];
+        const dynamicLimit = currentTemplate?.expectedWidth || 1;
+
+        // Visual constants
+        const LINE_HEIGHT = 24;
+        const VERTICAL_PADDING = 16;
+
+        // Calibrate character width for accurate grid drawing
+        const calibrateWidth = () => {
+            if (measurerRef.current) {
+                const totalWidth = measurerRef.current.getBoundingClientRect().width;
+                if (totalWidth > 0) {
+                    const precise = totalWidth / 100;
+                    setCharWidth(precise);
+                }
+            }
+        };
+
+        useEffect(() => {
+            calibrateWidth();
+            window.addEventListener('resize', calibrateWidth);
+            setTimeout(calibrateWidth, 500);
+            return () => window.removeEventListener('resize', calibrateWidth);
+        }, []);
+
+        const normalizedSections = useMemo(() => {
+            return currentTemplate.sections.map(section => {
+                let fieldsToProcess = section.fields || [];
+                if (section.rawOffsets) {
+                    const offsets = section.rawOffsets.trim().split(/\s+/);
+                    fieldsToProcess = offsets.map((offset, i) => {
+                        const end = parseInt(offset, 10);
+                        const start = i === 0 ? 1 : parseInt(offsets[i-1], 10) + 1;
+                        return { name: `[${start}-${end}]`, start, end };
+                    });
+                }
+
+                const processedFields = fieldsToProcess.map((f, idx, all) => {
+                    let start = f.start;
+                    const end = f.end;
+                    if (start === undefined) {
+                        start = (idx === 0) ? 1 : (all[idx-1].end + 1);
+                    }
+                    const visualX = (start - 1) * charWidth;
+                    const visualWidth = (end - start + 1) * charWidth;
+                    return { ...f, start, end, visualX, visualWidth };
+                });
+                return { ...section, fields: processedFields };
+            });
+        }, [currentTemplate, charWidth]);
+
+        const getLineAnalysis = useMemo(() => {
+            const lines = text.split('\n');
+            return lines.map((line, idx) => {
+                let matchedSection = null;
+                for (const section of normalizedSections) {
+                    if (section.match === 'first' && idx === 0) { matchedSection = section; break; }
+                    if (section.match === 'last' && idx === lines.length - 1 && lines.length > 1) { matchedSection = section; break; }
+                    if (typeof section.match === 'string' && section.match.startsWith('prefix:')) {
+                        const prefix = section.match.split(':')[1];
+                        if (line.startsWith(prefix)) { matchedSection = section; break; }
+                    }
+                    if (typeof section.match === 'function' && section.match(line, idx, lines)) { matchedSection = section; break; }
+                    if (section.match === 'default') { matchedSection = section; }
+                }
+                return { line, section: matchedSection, isValid: line.length === currentTemplate.expectedWidth, actualLength: line.length };
+            });
+        }, [text, currentTemplate, normalizedSections]);
+
+        const activeFieldInfo = useMemo(() => {
+            const analysis = getLineAnalysis[cursorPos.line];
+            if (!analysis || !analysis.section) return null;
+            const col1Based = cursorPos.col + 1;
+            return analysis.section.fields.find(f => col1Based >= f.start && col1Based <= f.end);
+        }, [getLineAnalysis, cursorPos]);
+
+        const updateCursorPosition = (e) => {
+            const textarea = e.target;
+            const start = textarea.selectionStart;
+            const linesBefore = textarea.value.substring(0, start).split('\n');
+            setCursorPos({ line: linesBefore.length - 1, col: linesBefore[linesBefore.length - 1].length });
+        };
+
+        const toggleLayer = (id) => {
+            const next = new Set(visibleLayers);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            setVisibleLayers(next);
+        };
+
+        const handleFile = (file) => {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (f) => setText(f.target.result);
+            reader.readAsText(file);
+        };
+
+        const handleExport = () => {
+            const now = new Date();
+            const ts = now.toISOString().replace(/[:T-]/g, '').slice(0, 14);
+            const filename = `${activeTemplateKey}_${ts}.txt`;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // --- CALCULATION OF DIMENSIONS ---
+        const canvasWidth = dynamicLimit * charWidth;
+        const contentWidth = Math.ceil(canvasWidth);
+        const totalLines = getLineAnalysis.length;
+        const totalRowsHeight = totalLines * LINE_HEIGHT;
+        // The container needs to include padding to avoid clipping in border-box mode
+        const totalAreaHeight = totalRowsHeight + (VERTICAL_PADDING * 2);
+
+        return (
+            <div
+                className={`flex flex-col h-screen font-sans text-slate-900 transition-colors ${isDragging ? 'drag-active' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFile(e.dataTransfer.files[0]); }}
+            >
+                <div ref={measurerRef} className="fixed -top-full opacity-0 pointer-events-none whitespace-pre monospace-editor" style={{ fontSize: '15px' }}>
+                    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                </div>
+
+                <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 shadow-sm z-30">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-indigo-600 p-2 rounded-lg text-white shadow-md shadow-indigo-100"><Hash size={20} /></div>
+                        <h1 className="text-xl font-bold tracking-tight text-slate-800">Striaris Tabulata</h1>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button onClick={calibrateWidth} title="Recalibrate Grid" className="p-2 text-indigo-600 hover:text-indigo-800 transition-colors"><RefreshCw size={18} /></button>
+                        <label className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md cursor-pointer transition-colors text-sm font-medium">
+                            <Upload size={16} /> Import
+                            <input type="file" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
+                        </label>
+                        <button onClick={handleExport} className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-medium shadow-sm"><Download size={16} /> Export</button>
+                    </div>
+                </header>
+
+                <div className="flex flex-1 overflow-hidden">
+                    <aside className="w-72 bg-white border-r border-slate-200 overflow-y-auto flex flex-col p-4 gap-6 z-20">
+                        <section>
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2"><Settings size={12} /> Template</h3>
+                            <select value={activeTemplateKey} onChange={(e) => setActiveTemplateKey(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium">
+                                {Object.entries(TEMPLATE_CONFIG).map(([key, config]) => <option key={key} value={key}>{config.name}</option>)}
+                            </select>
+                        </section>
+
+                        <section>
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2"><Layers size={12} /> Layers</h3>
+                                <div className="flex gap-1">
+                                    <button onClick={() => setShowSpaces(!showSpaces)} title="Show Spaces" className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter transition-colors ${showSpaces ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>Spaces</button>
+                                    <button onClick={() => setShowRuler(!showRuler)} title="Show Ruler" className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter transition-colors ${showRuler ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>Ruler</button>
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                {currentTemplate.sections.map(section => (
+                                    <button key={section.id} onClick={() => toggleLayer(section.id)} className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-xs transition-all duration-200 ${visibleLayers.has(section.id) ? 'border-slate-200 bg-slate-50 text-slate-900 shadow-sm' : 'border-transparent bg-white text-slate-400 opacity-50 grayscale'}`}>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-3 h-3 rounded-full shadow-inner" style={{ backgroundColor: section.borderColor }} />
+                                            <span className="font-semibold">{section.name}</span>
+                                        </div>
+                                        {visibleLayers.has(section.id) ? <Eye size={14} className="text-indigo-600" /> : <EyeOff size={14} />}
+                                    </button>
+                                ))}
+                            </div>
+                        </section>
+
+                        {activeFieldInfo && (
+                            <section className="animate-in fade-in slide-in-from-left-2 duration-300">
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 shadow-sm">
+                                    <div className="text-[10px] text-indigo-400 font-bold uppercase mb-1 tracking-wider flex items-center gap-2"><MousePointer2 size={10} /> Field Inspector</div>
+                                    <div className="text-sm font-bold text-indigo-900 mb-3 truncate">{activeFieldInfo.name}</div>
+                                    <div className="grid grid-cols-2 gap-y-2 text-[11px] font-medium">
+                                        <div className="text-slate-500">Pos From: <b className="text-slate-800">{activeFieldInfo.start}</b></div>
+                                        <div className="text-slate-500">Pos To: <b className="text-slate-800">{activeFieldInfo.end}</b></div>
+                                        <div className="text-slate-500 col-span-2 border-t border-indigo-100 pt-1 mt-1">Width: <b className="text-slate-800">{activeFieldInfo.end - activeFieldInfo.start + 1} ch</b></div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+                    </aside>
+
+                    <main className="flex-1 flex flex-col bg-slate-100 relative overflow-hidden">
+                        {/* Unified scroll container */}
+                        <div ref={scrollContainerRef} className="flex-1 relative overflow-auto">
+
+                            <div className="inline-block relative align-top" style={{ minHeight: '100%' }}>
+                                {/* STICKY RULER */}
+                                {showRuler && (
+                                    <div className="sticky top-0 z-30 flex bg-white border-b border-slate-200 h-8" style={{ width: (contentWidth + 48) + "px" }}>
+                                        <div className="sticky left-0 z-40 w-12 border-r border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+                                            <Hash size={12} className="text-slate-300" />
+                                        </div>
+
+                                        <div className="relative h-full" style={{ width: contentWidth + "px" }}>
+                                            {Array.from({ length: Math.floor(dynamicLimit / 10) }).map((_, i) => {
+                                                const colNum = (i + 1) * 10;
+                                                return (
+                                                    <div
+                                                        key={colNum}
+                                                        className="absolute border-l border-slate-400 h-full flex items-end pb-1 pl-0.5 text-[9px] font-mono text-slate-900"
+                                                        style={{ left: `${(colNum - 1) * charWidth}px` }}
+                                                    >
+                                                        {colNum}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex">
+                                    {/* STICKY GUTTER - Adjusted to totalAreaHeight */}
+                                    <div className="sticky left-0 z-20 w-12 bg-slate-50 border-r border-slate-200 text-slate-300 font-mono text-[10px] text-right pr-2 select-none shrink-0 shadow-[2px_0_4px_rgba(0,0,0,0.02)]"
+                                         style={{
+                                            paddingTop: VERTICAL_PADDING + 'px',
+                                            height: totalAreaHeight + 'px'
+                                         }}>
+                                        {getLineAnalysis.map((_, i) => (
+                                            <div key={i} className="h-6 flex items-center justify-end leading-6">
+                                                {i + 1}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* DRAWING SURFACE */}
+                                    <div className="relative overflow-visible" style={{ width: contentWidth + "px", height: totalAreaHeight + 'px' }}>
+                                        {/* SVG Overlay - Perfect sync with text rows */}
+                                        <div className="absolute inset-0 pointer-events-none z-0" style={{ paddingTop: `${VERTICAL_PADDING}px` }}>
+                                            <svg width={contentWidth} height={totalRowsHeight}>
+                                                {getLineAnalysis.map((analysis, lineIdx) => (
+                                                    <g key={lineIdx}>
+                                                        {analysis.section && visibleLayers.has(analysis.section.id) && (
+                                                            <rect x={0} y={lineIdx * LINE_HEIGHT} width={analysis.actualLength * charWidth} height={LINE_HEIGHT} fill={analysis.section.color} />
+                                                        )}
+                                                        {showSpaces && analysis.line.split('').map((char, charIdx) => (
+                                                            char === ' ' && charIdx < dynamicLimit ? (
+                                                                <circle key={`sp-${lineIdx}-${charIdx}`} cx={charIdx * charWidth + (charWidth / 2)} cy={lineIdx * LINE_HEIGHT + (LINE_HEIGHT / 2)} r="1.2" fill="rgba(148, 163, 184, 0.8)"/>
+                                                            ) : null
+                                                        ))}
+                                                        {!analysis.isValid && (
+                                                            <rect x={Math.min(analysis.actualLength, currentTemplate.expectedWidth) * charWidth} y={lineIdx * LINE_HEIGHT} width={Math.abs(analysis.actualLength - currentTemplate.expectedWidth) * charWidth + 20} height={LINE_HEIGHT} fill="rgba(244, 63, 94, 0.08)" />
+                                                        )}
+                                                        {analysis.section && visibleLayers.has(analysis.section.id) && analysis.section.fields.map((field, fIdx) => (
+    <rect
+        key={fIdx}
+        x={field.visualX}
+        y={lineIdx * LINE_HEIGHT}
+        width={field.visualWidth}
+        height={LINE_HEIGHT}
+        fill="none"
+        /* Используем borderColor секции, если он есть, иначе стандартный серый */
+        stroke={analysis.section.borderColor || "rgba(30, 41, 59, 0.3)"}
+        strokeWidth="1"
+        strokeDasharray="4,2"
+    />
+))}
+                                                        {activeFieldInfo && cursorPos.line === lineIdx && (
+                                                            <rect x={activeFieldInfo.visualX} y={lineIdx * LINE_HEIGHT} width={activeFieldInfo.visualWidth} height={LINE_HEIGHT} fill="rgba(79, 70, 229, 0.15)" stroke="rgba(79, 70, 229, 1)" strokeWidth="2" className="animate-pulse" />
+                                                        )}
+                                                    </g>
+                                                ))}
+                                            </svg>
+                                        </div>
+
+                                        {/* Editor Area - Fixed height includes padding to ensure last line is visible */}
+                                        <textarea
+                                            ref={editorRef}
+                                            value={text}
+                                            onChange={(e) => { setText(e.target.value); updateCursorPosition(e); }}
+                                            onKeyUp={updateCursorPosition} onClick={updateCursorPosition} onSelect={updateCursorPosition}
+                                            spellCheck={false} wrap="off"
+                                            className="monospace-editor relative z-10 block bg-transparent text-slate-900 text-[15px] leading-6 border-none outline-none resize-none whitespace-pre"
+                                            style={{
+                                                width: contentWidth + "px",
+                                                height: totalAreaHeight + 'px',
+                                                overflow: 'hidden',
+                                                tabSize: 4,
+                                                paddingTop: VERTICAL_PADDING + 'px',
+                                                paddingBottom: VERTICAL_PADDING + 'px',
+                                                boxSizing: 'border-box'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <footer className="h-8 bg-white border-t border-slate-200 flex items-center px-4 justify-between text-[10px] font-bold text-slate-500 z-30 uppercase tracking-tighter shadow-2xl shrink-0">
+                            <div className="flex items-center gap-6">
+                                <span className="flex items-center gap-1.5 text-slate-400 transition-opacity"><ChevronRight size={12} className="text-indigo-500" /> STRIARIS</span>
+                                <div className="flex items-center gap-3 bg-slate-100 px-3 py-1 rounded-md">
+                                    <span className="text-slate-500">LN: <b className="text-slate-800">{cursorPos.line + 1}</b></span>
+                                    <span className="text-slate-500">COL: <b className="text-slate-800">{cursorPos.col + 1}</b></span>
+                                </div>
+                                {activeFieldInfo && (
+                                    <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">FIELD: <b className="text-indigo-800">{activeFieldInfo.name}</b></span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-6">
+                                {getLineAnalysis.some(l => !l.isValid) && (
+                                    <span className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-100 shadow-sm"><AlertCircle size={12} /> FORMAT ERROR</span>
+                                )}
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm animate-pulse" />
+                                    <span>CALIBRATED ({charWidth.toFixed(4)}px)</span>
+                                </div>
+                            </div>
+                        </footer>
+                    </main>
+                </div>
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+</script>
+</body>
+</html>
