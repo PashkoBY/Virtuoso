@@ -105,8 +105,8 @@
         {
             id: "dheader",
             name: "Document header",
-            color: "rgba(2, 132, 199, 0.18)",
-            borderColor: "rgba(7, 89, 133, 0.9)",
+            color: "rgba(34, 197, 94, 0.3)",
+            borderColor: "#C52266",
             match: (line) => {
              const docType = line.substring(17, 19);
              const allowedTypes = ['D1', 'EZ', '2L', '2S', '4L']; return allowedTypes.includes(docType); },
@@ -129,8 +129,8 @@
         {
             id: "brecord",
             name: "Booking record",
-            color: "rgba(241, 245, 249, 1.0)",
-            borderColor: "rgba(148, 163, 184, 0.6)",
+            color: "rgba(241, 245, 249, 0.6)",
+            borderColor: "rgba(0, 0, 0, 0.5)",
             match: "default",
             fields: [
                 { name: "Record number", start: 1, end: 6 },
@@ -470,7 +470,7 @@
         height={LINE_HEIGHT}
         fill="none"
         /* Используем borderColor секции, если он есть, иначе стандартный серый */
-        stroke={analysis.section.borderColor || "rgba(30, 41, 59, 0.3)"}
+        stroke={analysis.section.borderColor || "rgba(30, 41, 59, 0.4)"}
         strokeWidth="1"
         strokeDasharray="4,2"
     />
@@ -490,7 +490,7 @@
                                             onChange={(e) => { setText(e.target.value); updateCursorPosition(e); }}
                                             onKeyUp={updateCursorPosition} onClick={updateCursorPosition} onSelect={updateCursorPosition}
                                             spellCheck={false} wrap="off"
-                                            className="monospace-editor relative z-10 block bg-transparent text-slate-900 text-[15px] leading-6 border-none outline-none resize-none whitespace-pre"
+                                            className="monospace-editor relative z-10 block bg-transparent text-slate-500 text-[15px] leading-6 border-none outline-none resize-none whitespace-pre"
                                             style={{
                                                 width: contentWidth + "px",
                                                 height: totalAreaHeight + 'px',
