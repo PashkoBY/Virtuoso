@@ -63,7 +63,7 @@
     const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
     const MousePointer2 = (p) => <Icon {...p}><path d="M7 15l5 5 8-16-16 8 5 3z"/></Icon>;
 
-   // --- CONFIGURATION ENGINE ---
+ // --- CONFIGURATION ENGINE ---
     const TEMPLATE_CONFIG = {
 "F001": {
     name: "F001 - SAP",
@@ -182,23 +182,162 @@
         }
     ]
 },
-    "massive_data_demo": {
-        name: "Massive Data (Compact Config)",
-        description: "Demonstrating rawOffsets for simplified maintenance.",
-        expectedWidth: 300,
+    "F003": {
+        name: "F003 - PCS",
+        description: "rawOffsets for simplified maintenance.",
+        expectedWidth: 711,
         sections: [
             {
-                id: "data_block",
-                name: "Compact Layout",
-                color: "rgba(16, 185, 129, 0.08)",
-                borderColor: "rgba(5, 150, 105, 0.5)",
+                id: "fheader",
+                name: "File Header",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "first",
+                rawOffsets: "4 5 13 21 604"
+            } ,
+                        {
+                id: "ftrailer",
+                name: "File Trailer",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "last",
+                rawOffsets: "6 22 40 711"
+            },
+                        {
+                id: "record",
+                name: "Records",
+color: "rgba(241, 245, 249, 0.6)",
+borderColor: "rgba(0, 0, 0, 0.5)",
                 match: "default",
-                rawOffsets: "3 14 16 46 71 79 104 106 117 125 127 131 139 142 150 151 152 153 187 198 233 234 235 269 280 283 300"
+                rawOffsets: " 3 6 10 13 29 45 46 57 65 68 125 130 141 175 186 220 231 266 301 305 335 370 378 382 417 452 456 596 600 604 674"
+            }
+        ]
+    } ,
+        "F005": {
+        name: "F005 - LEA",
+        description: "rawOffsets for simplified maintenance.",
+        expectedWidth: 520,
+        sections: [
+            {
+                id: "fheader",
+                name: "File Header",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "first",
+                rawOffsets: "4 5 13 21 520"
+            } ,
+                        {
+                id: "ftrailer",
+                name: "File Trailer",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "last",
+                rawOffsets: "4 10 26 44 520"
+            },
+                        {
+                id: "record",
+                name: "Records",
+color: "rgba(241, 245, 249, 0.6)",
+borderColor: "rgba(0, 0, 0, 0.5)",
+                match: "default",
+                rawOffsets: "3 7 10 21 29 37 40 56 57 91 102 136 147 182 217 221 251 286 294 298 333 368 372 512 516 520"
+            }
+        ]
+    } ,
+            "F007": {
+        name: "F007 - DIN",
+        description: "rawOffsets for simplified maintenance.",
+        expectedWidth: 674,
+        sections: [
+            {
+                id: "fheader",
+                name: "File Header",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "first",
+                rawOffsets: "4 5 13 21 674"
+            } ,
+                        {
+                id: "ftrailer",
+                name: "File Trailer",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "last",
+                rawOffsets: "6 22 40 674"
+            },
+                        {
+                id: "record",
+                name: "Records",
+color: "rgba(241, 245, 249, 0.6)",
+borderColor: "rgba(0, 0, 0, 0.5)",
+                match: "default",
+                rawOffsets: "3 6 10 13 29 45 46 57 65 68 125 130 141 175 186 220 231 266 301 305 335 370 378 382 417 452 456 596 600 604 674"
+            }
+        ]
+    },
+                "TRX": {
+        name: "F110, F002, F009, F004, F006 - TRX ",
+        description: "rawOffsets for simplified maintenance.",
+        expectedWidth: 711,
+        sections: [
+            {
+                id: "fheader",
+                name: "File Header",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "first",
+                rawOffsets: "4 5 13 21 711"
+            } ,
+                        {
+                id: "ftrailer",
+                name: "File Trailer",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "last",
+                rawOffsets: "6 22 40 711"
+            },
+                        {
+                id: "record",
+                name: "Records",
+color: "rgba(241, 245, 249, 0.6)",
+borderColor: "rgba(0, 0, 0, 0.5)",
+                match: "default",
+                rawOffsets: "3 19 35 36 44 52 109 120 125 136 171 206 212 247 263 265 269 273 275 278 312 323 357 368 403 438 442 477 485 489 524 559 563 703 707 711"
+            }
+        ]
+    },
+    "MD": {
+        name: "F011, F012, F013, F014 - MD ",
+        description: "rawOffsets for simplified maintenance.",
+        expectedWidth: 283,
+        sections: [
+            {
+                id: "fheader",
+                name: "File Header",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "first",
+                rawOffsets: "4 5 13 21 280"
+            } ,
+                        {
+                id: "ftrailer",
+                name: "File Trailer",
+color: "rgba(217, 119, 6, 0.18)",
+borderColor: "rgba(146, 64, 14, 0.9)",
+                match: "last",
+                rawOffsets: "6 24 280"
+            },
+                        {
+                id: "record",
+                name: "Records",
+color: "rgba(241, 245, 249, 0.6)",
+borderColor: "rgba(0, 0, 0, 0.5)",
+                match: "default",
+                rawOffsets: "3 14 16 46 71 79 104 106 117 125 127 131 139 142 150 151 152 153 187 198 233 234 235 269 280 283"
             }
         ]
     }
 };
-
 
     const App = () => {
         const [text, setText] = useState("");
