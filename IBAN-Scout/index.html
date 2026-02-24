@@ -497,52 +497,220 @@
         MK: ["144", "130", "150"], GE: ["BA", "TB", "BO"]
     };
 
+    /**
+     * Normalized BBAN spec:
+     * - n: field name (bank/branch/account/check/etc)
+     * - l: length
+     * - cs: charset: 'n' (digits), 'a' (A-Z), 'an' (A-Z0-9)
+     * - fixed/prefix (optional): force known value(s)
+     *
+     * Optional plausibility layer:
+     * - postprocess(parts): can compute derived fields like national check digits.
+     */
     const bbanSpecs = {
-        AT: [{n:'bank',l:5}, {n:'account',l:11}],
-        DE: [{n:'bank',l:8}, {n:'account',l:10}],
-        FR: [{n:'bank',l:5}, {n:'branch',l:5}, {n:'account',l:11}, {n:'check',l:2}],
-        ES: [{n:'bank',l:4}, {n:'branch',l:4}, {n:'check',l:2}, {n:'account',l:10}],
-        IT: [{n:'check',l:1}, {n:'bank',l:5}, {n:'branch',l:5}, {n:'account',l:12}],
-        BE: [{n:'bank',l:3}, {n:'account',l:7}, {n:'check',l:2}],
-        BG: [{n:'bank',l:4}, {n:'branch',l:4}, {n:'account',l:8}],
-        HR: [{n:'bank',l:7}, {n:'account',l:10}],
-        CY: [{n:'bank',l:3}, {n:'branch',l:5}, {n:'account',l:16}],
-        CZ: [{n:'bank',l:4}, {n:'account',l:16}],
-        DK: [{n:'bban',l:14}],
-        EE: [{n:'bank',l:4}, {n:'account',l:12}],
-        FI: [{n:'bank',l:6}, {n:'account',l:8}],
-        GR: [{n:'bank',l:3}, {n:'branch',l:4}, {n:'account',l:16}],
-        HU: [{n:'bank',l:3}, {n:'account',l:24}],
-        IS: [{n:'bank',l:4}, {n:'account',l:16}],
-        IE: [{n:'bank',l:4}, {n:'branch',l:6}, {n:'account',l:8}],
-        LV: [{n:'bank',l:4}, {n:'account',l:13}],
-        LI: [{n:'bank',l:5}, {n:'account',l:12}],
-        LT: [{n:'bank',l:5}, {n:'account',l:11}],
-        LU: [{n:'bank',l:3}, {n:'account',l:13}],
-        MT: [{n:'bank',l:4}, {n:'branch',l:5}, {n:'account',l:18}],
-        MC: [{n:'bank',l:5}, {n:'branch',l:5}, {n:'account',l:11}, {n:'check',l:2}],
-        NL: [{n:'bank',l:4}, {n:'account',l:10}],
-        NO: [{n:'bank',l:4}, {n:'account',l:6}],
-        PL: [{n:'bank',l:8}, {n:'account',l:16}],
-        PT: [{n:'bank',l:4}, {n:'branch',l:4}, {n:'account',l:11}],
-        RO: [{n:'bank',l:4}, {n:'account',l:16}],
-        SM: [{n:'bank',l:5}, {n:'branch',l:5}, {n:'account',l:12}],
-        SK: [{n:'bank',l:4}, {n:'account',l:10}],
-        SI: [{n:'bank',l:5}, {n:'account',l:8}],
-        SE: [{n:'bank',l:3}, {n:'account',l:17}],
-        CH: [{n:'bank',l:5}, {n:'account',l:12}],
-        GB: [{n:'bank',l:4}, {n:'branch',l:6}, {n:'account',l:8}],
-        AD: [{n:'bank',l:4}, {n:'account',l:20}],
-        AL: [{n:'bank',l:8}, {n:'account',l:16}],
-        ME: [{n:'bank',l:3}, {n:'account',l:13}],
-        RS: [{n:'bank',l:3}, {n:'account',l:13}],
-        MK: [{n:'bank',l:3}, {n:'account',l:11}],
-        GE: [{n:'bank',l:2}, {n:'account',l:16}]
+        AT: [{n:'bank',l:5,cs:'n'}, {n:'account',l:11,cs:'n'}],
+        DE: [{n:'bank',l:8,cs:'n'}, {n:'account',l:10,cs:'n'}],
+
+        // FR/MC: RIB key (2 digits) is national check inside BBAN
+        FR: [{n:'bank',l:5,cs:'n'}, {n:'branch',l:5,cs:'n'}, {n:'account',l:11,cs:'an'}, {n:'check',l:2,cs:'n'}],
+        MC: [{n:'bank',l:5,cs:'n'}, {n:'branch',l:5,cs:'n'}, {n:'account',l:11,cs:'an'}, {n:'check',l:2,cs:'n'}],
+
+        // Spain: bank(4) + branch(4) + national check(2) + account(10)
+        // We'll compute the 2-digit national check for plausibility.
+        ES: [
+            {n:'bank',l:4,cs:'n'},
+            {n:'branch',l:4,cs:'n'},
+            {n:'check',l:2,cs:'n'},     // derived in postprocess
+            {n:'account',l:10,cs:'n'}
+        ],
+
+        // Italy: CIN(1 letter) is derived from ABI(5)+CAB(5)+account(12)
+        IT: [{n:'check',l:1,cs:'a'}, {n:'bank',l:5,cs:'n'}, {n:'branch',l:5,cs:'n'}, {n:'account',l:12,cs:'an'}],
+
+        // Belgium: bank(3) + account(7) + national check(2) where check = (bank+account) mod 97 (00 -> 97)
+        // We'll compute the 2-digit national check for plausibility.
+        BE: [
+            {n:'bank',l:3,cs:'n'},
+            {n:'account',l:7,cs:'n'},
+            {n:'check',l:2,cs:'n'}      // derived in postprocess
+        ],
+
+        BG: [{n:'bank',l:4,cs:'a'}, {n:'branch',l:4,cs:'n'}, {n:'account',l:8,cs:'an'}],
+        HR: [{n:'bank',l:7,cs:'n'}, {n:'account',l:10,cs:'n'}],
+        CY: [{n:'bank',l:3,cs:'n'}, {n:'branch',l:5,cs:'n'}, {n:'account',l:16,cs:'an'}],
+        CZ: [{n:'bank',l:4,cs:'n'}, {n:'account',l:16,cs:'n'}],
+        DK: [{n:'bban',l:14,cs:'n'}],
+        EE: [{n:'bank',l:4,cs:'a'}, {n:'account',l:12,cs:'n'}],
+        FI: [{n:'bank',l:6,cs:'n'}, {n:'account',l:8,cs:'n'}],
+        GR: [{n:'bank',l:3,cs:'n'}, {n:'branch',l:4,cs:'n'}, {n:'account',l:16,cs:'n'}],
+        HU: [{n:'bank',l:3,cs:'n'}, {n:'account',l:24,cs:'n'}],
+        IS: [{n:'bank',l:4,cs:'n'}, {n:'account',l:16,cs:'n'}],
+        IE: [{n:'bank',l:4,cs:'a'}, {n:'branch',l:6,cs:'n'}, {n:'account',l:8,cs:'n'}],
+        LV: [{n:'bank',l:4,cs:'a'}, {n:'account',l:13,cs:'an'}],
+        LI: [{n:'bank',l:5,cs:'n'}, {n:'account',l:12,cs:'an'}],
+        LT: [{n:'bank',l:5,cs:'n'}, {n:'account',l:11,cs:'n'}],
+        LU: [{n:'bank',l:3,cs:'n'}, {n:'account',l:13,cs:'an'}],
+        MT: [{n:'bank',l:4,cs:'a'}, {n:'branch',l:5,cs:'n'}, {n:'account',l:18,cs:'an'}],
+        NL: [{n:'bank',l:4,cs:'a'}, {n:'account',l:10,cs:'n'}],
+        NO: [{n:'bank',l:4,cs:'n'}, {n:'account',l:6,cs:'n'}],
+        PL: [{n:'bank',l:8,cs:'n'}, {n:'account',l:16,cs:'n'}],
+
+        // PT: domestic check digits (2) exist in BBAN (NIB-style check)
+        PT: [{n:'bank',l:4,cs:'n'}, {n:'branch',l:4,cs:'n'}, {n:'account',l:11,cs:'n'}, {n:'check',l:2,cs:'n'}],
+
+        RO: [{n:'bank',l:4,cs:'an'}, {n:'account',l:16,cs:'an'}],
+        SM: [{n:'bank',l:5,cs:'n'}, {n:'branch',l:5,cs:'n'}, {n:'account',l:12,cs:'an'}],
+        SK: [{n:'bank',l:4,cs:'n'}, {n:'account',l:10,cs:'n'}],
+        SI: [{n:'bank',l:5,cs:'n'}, {n:'account',l:8,cs:'n'}],
+        SE: [{n:'bank',l:3,cs:'n'}, {n:'account',l:17,cs:'n'}],
+        CH: [{n:'bank',l:5,cs:'n'}, {n:'account',l:12,cs:'an'}],
+        GB: [{n:'bank',l:4,cs:'a'}, {n:'branch',l:6,cs:'n'}, {n:'account',l:8,cs:'n'}],
+        AD: [{n:'bank',l:4,cs:'n'}, {n:'account',l:20,cs:'n'}],
+        AL: [{n:'bank',l:8,cs:'n'}, {n:'account',l:16,cs:'an'}],
+        ME: [{n:'bank',l:3,cs:'n'}, {n:'account',l:13,cs:'n'}],
+        RS: [{n:'bank',l:3,cs:'n'}, {n:'account',l:13,cs:'n'}],
+        MK: [{n:'bank',l:3,cs:'n'}, {n:'account',l:11,cs:'n'}],
+        GE: [{n:'bank',l:2,cs:'a'}, {n:'account',l:16,cs:'an'}]
+    };
+
+    // Per-country plausibility layer (optional) – compute national check digits inside BBAN where relevant.
+    const bbanPostProcessors = {
+        ES(parts) {
+            if (!parts.bank || !parts.branch || !parts.account) return;
+            parts.check = computeSpanishDomesticCheck(parts.bank, parts.branch, parts.account); // 2 digits
+        },
+        BE(parts) {
+            if (!parts.bank || !parts.account) return;
+            const base = `${parts.bank}${parts.account}`; // 10 digits
+            let mod = parseInt(base, 10) % 97;
+            if (mod === 0) mod = 97;
+            parts.check = String(mod).padStart(2, '0');
+        },
+        FR(parts) {
+            if (!parts.bank || !parts.branch || !parts.account) return;
+            parts.check = computeFrenchRibKey(parts.bank, parts.branch, parts.account);
+        },
+        MC(parts) {
+            if (!parts.bank || !parts.branch || !parts.account) return;
+            parts.check = computeFrenchRibKey(parts.bank, parts.branch, parts.account);
+        },
+        IT(parts) {
+            if (!parts.bank || !parts.branch || !parts.account) return;
+            parts.check = computeItalianCin(parts.bank, parts.branch, parts.account);
+        },
+        PT(parts) {
+            if (!parts.bank || !parts.branch || !parts.account) return;
+            parts.check = computePortugueseNibCheck(parts.bank, parts.branch, parts.account);
+        }
     };
 
     // --- UTILITIES ---
     function randD(n) { let s = ""; for (let i = 0; i < n; i++) s += Math.floor(Math.random() * 10); return s; }
     function randAN(n) { const c = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; let s = ""; for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)]; return s; }
+    function randA(n) { const c = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; let s = ""; for (let i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)]; return s; }
+
+    function genByCharset(len, cs) {
+        if (cs === 'a') return randA(len);
+        if (cs === 'an') return randAN(len);
+        return randD(len); // default 'n'
+    }
+
+    // Spain domestic check digits (DC) for CCC: bank(4)+branch(4)+DC(2)+account(10)
+    function computeSpanishDomesticCheck(bank4, branch4, account10) {
+        const w = [1, 2, 4, 8, 5, 10, 9, 7, 3, 6];
+        const mod11Digit = (digits10) => {
+            let sum = 0;
+            for (let i = 0; i < 10; i++) sum += parseInt(digits10[i], 10) * w[i];
+            const r = 11 - (sum % 11);
+            if (r === 11) return 0;
+            if (r === 10) return 1;
+            return r;
+        };
+        const d1 = mod11Digit(`00${bank4}${branch4}`); // 10 digits total
+        const d2 = mod11Digit(account10);
+        return `${d1}${d2}`;
+    }
+
+    // French RIB key (also used by Monaco)
+    // key = 97 - ( (bank(5)+branch(5)+account(11 with letters mapped)) mod 97 )
+    // mapping letters: A,J=1; B,K,S=2; C,L,T=3; D,M,U=4; E,N,V=5; F,O,W=6; G,P,X=7; H,Q,Y=8; I,R,Z=9
+    function computeFrenchRibKey(bank5, branch5, account11) {
+        const mapRibChar = (ch) => {
+            if (/[0-9]/.test(ch)) return ch;
+            const c = ch.toUpperCase();
+            const groups = {
+                1: ['A', 'J'],
+                2: ['B', 'K', 'S'],
+                3: ['C', 'L', 'T'],
+                4: ['D', 'M', 'U'],
+                5: ['E', 'N', 'V'],
+                6: ['F', 'O', 'W'],
+                7: ['G', 'P', 'X'],
+                8: ['H', 'Q', 'Y'],
+                9: ['I', 'R', 'Z']
+            };
+            for (const [digit, letters] of Object.entries(groups)) {
+                if (letters.includes(c)) return digit;
+            }
+            // Fallback: if unexpected char appears, treat as 0 to keep generation stable
+            return '0';
+        };
+
+        const converted = account11.split('').map(mapRibChar).join('');
+        const numStr = `${bank5}${branch5}${converted}`;
+        let mod;
+        try {
+            mod = BigInt(numStr) % 97n;
+        } catch (e) {
+            return "00";
+        }
+        let key = 97n - mod;
+        if (key === 0n) key = 97n;
+        return key.toString().padStart(2, '0');
+    }
+
+    // Italian CIN (check letter) derived from ABI(5)+CAB(5)+account(12)
+    function computeItalianCin(abi5, cab5, account12) {
+        const s = `${abi5}${cab5}${account12}`.toUpperCase();
+        const evenVal = (ch) => {
+            if (/[0-9]/.test(ch)) return ch.charCodeAt(0) - 48;
+            return ch.charCodeAt(0) - 65;
+        };
+        const oddMap = {
+            '0': 1, '1': 0, '2': 5, '3': 7, '4': 9, '5': 13, '6': 15, '7': 17, '8': 19, '9': 21,
+            'A': 1, 'B': 0, 'C': 5, 'D': 7, 'E': 9, 'F': 13, 'G': 15, 'H': 17, 'I': 19, 'J': 21,
+            'K': 2, 'L': 4, 'M': 18, 'N': 20, 'O': 11, 'P': 3, 'Q': 6, 'R': 8, 'S': 12, 'T': 14,
+            'U': 16, 'V': 10, 'W': 22, 'X': 25, 'Y': 24, 'Z': 23
+        };
+
+        let sum = 0;
+        for (let i = 0; i < s.length; i++) {
+            const pos1 = i + 1; // 1-based
+            const ch = s[i];
+            if (pos1 % 2 === 1) sum += (oddMap[ch] ?? 0);
+            else sum += evenVal(ch);
+        }
+        const cinIndex = sum % 26;
+        return String.fromCharCode(65 + cinIndex);
+    }
+
+    // Portuguese (PT) BBAN check digits (best-effort NIB-style check)
+    // Check = 98 - (sum(digit_i * weight_i) mod 97), weights for 19 digits: bank(4)+branch(4)+account(11)
+    function computePortugueseNibCheck(bank4, branch4, account11) {
+        const base = `${bank4}${branch4}${account11}`;
+        const weights = [73, 17, 89, 38, 62, 45, 53, 15, 50, 5, 49, 34, 81, 76, 27, 90, 9, 30, 3];
+        if (base.length !== 19) return "00";
+
+        let sum = 0;
+        for (let i = 0; i < 19; i++) {
+            const d = parseInt(base[i], 10);
+            if (Number.isNaN(d)) return "00";
+            sum += d * weights[i];
+        }
+        const mod = sum % 97;
+        const cd = 98 - mod;
+        return String(cd).padStart(2, '0');
+    }
 
     function getIbanCheck(cc, bban) {
         let r = bban + cc + "00";
@@ -575,16 +743,40 @@
     function generateData() {
         const cc = document.getElementById("country").value;
         const spec = bbanSpecs[cc];
-        let bban = "";
+        if (!spec) {
+            document.getElementById("ibanOutput").textContent = "IBAN: ...";
+            document.getElementById("accountOutput").textContent = "Account Number: ...";
+            console.warn("No BBAN spec for country:", cc);
+            return;
+        }
 
+        // 1) Generate parts using normalized field charset / fixed values
+        const parts = {};
         spec.forEach((f, i) => {
-            if (i === 0 && bankCodes[cc]) {
-                let bc = bankCodes[cc][Math.floor(Math.random() * bankCodes[cc].length)];
-                bban += bc.toString().padEnd(f.l, '0').slice(0, f.l);
-            } else {
-                if (cc === 'GB' || cc === 'NL' || cc === 'RO') bban += randAN(f.l);
-                else bban += randD(f.l);
+            // Prefer fixed value if provided
+            if (typeof f.fixed === 'string') {
+                parts[f.n] = f.fixed.toString().padEnd(f.l, '0').slice(0, f.l);
+                return;
             }
+            // If bankCodes exist and this is the first field named 'bank', use that list
+            if (i === 0 && f.n === 'bank' && bankCodes[cc]) {
+                let bc = bankCodes[cc][Math.floor(Math.random() * bankCodes[cc].length)];
+                parts[f.n] = bc.toString().padEnd(f.l, '0').slice(0, f.l);
+                return;
+            }
+            // Otherwise generate based on charset
+            parts[f.n] = genByCharset(f.l, f.cs || 'n');
+        });
+
+        // 2) Country-specific plausibility step (national checks inside BBAN etc.)
+        const post = bbanPostProcessors[cc];
+        if (typeof post === 'function') post(parts);
+
+        // 3) Assemble BBAN in spec order (using potentially updated derived parts)
+        let bban = "";
+        spec.forEach((f) => {
+            const v = (parts[f.n] ?? "").toString();
+            bban += v.padEnd(f.l, '0').slice(0, f.l);
         });
 
         const iban = cc + getIbanCheck(cc, bban) + bban;
@@ -667,8 +859,8 @@
         updateVisuals();
     };
 
-  // --- CLIPBOARD ---
-/**
+    // --- CLIPBOARD ---
+    /**
      * Modern handleCopy using only the navigator.clipboard API.
      * Note: This requires a secure context (HTTPS) or localhost to work.
      * @param {string} id - The ID of the element containing text
